@@ -8,6 +8,9 @@ const CRLF: &str = "\r\n";
 impl RObject {
     
     pub fn decode(data: &str, start: usize) -> Result<(RObject, usize)> {
+        if start >= data.len() {
+            bail!("No data to decode");
+        }
         match &data[start..=start] {
             "+" => Self::decode_simple_string(data, start),
             "-" => Self::decode_simple_error(data, start),

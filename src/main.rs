@@ -11,15 +11,19 @@ use crate::handler::handle;
 async fn main() {
     let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
     
+    const BUFFER_SIZE: usize = 4096;
     loop {
         let (mut stream, _) = listener.accept().await.unwrap();
         spawn(async move {
-            const BUFFER_SIZE: usize = 4096;
-            let mut buf = [0; BUFFER_SIZE];
-            let s = stream.read(&mut buf)
-                .await.expect("error reading from stream");
-            handle(&buf[..s], stream)
-                .await.expect("error handling request");
+            loop {
+                let mut buf = [0; BUFFER_SIZE];
+                let s = stream.read(&mut buf)
+                    .await.expect("error reading from stream");
+                if s != 0 {
+                    handle(&buf[..s], &mut stream)
+                        .await.expect("error handling request");
+                }
+            }
         });
     }
 }

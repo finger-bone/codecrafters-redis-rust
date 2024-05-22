@@ -3,7 +3,7 @@ use tokio::{io::AsyncWriteExt, net::TcpStream};
 
 use crate::{handler::handle_ping, protocol};
 
-pub async fn handle(request: &[u8], mut stream: TcpStream) -> Result<(), Error> {
+pub async fn handle(request: &[u8], stream: &mut TcpStream) -> Result<(), Error> {
     
     let str_req = std::str::from_utf8(request)?;
 
