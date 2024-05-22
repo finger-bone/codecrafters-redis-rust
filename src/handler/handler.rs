@@ -1,15 +1,17 @@
+use std::{collections::HashMap, sync::{Arc, RwLock}};
+
 use anyhow::{bail, Error};
 use tokio::net::TcpStream;
 
-use crate::{handler::{handle_echo, handle_ping}, protocol};
+use crate::{handler::{handle_echo, handle_get, handle_ping, handle_set}, protocol::{self, RObject}};
 
-pub async fn handle(request: &[u8], stream: &mut TcpStream) -> Result<(), Error> {
+pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: &Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
     
     let str_req = std::str::from_utf8(request)?;
 
     // eprintln!(
     //     "Handling request: {}",
-    //     if true { str_req } else { "" }
+    //     { str_req }
     // );
 
     let (parsed, _) = protocol::RObject::decode(str_req, 0)?;
@@ -23,12 +25,12 @@ pub async fn handle(request: &[u8], stream: &mut TcpStream) -> Result<(), Error>
                 protocol::RObject::BulkString(s) => s,
                 _ => bail!("Expected string as command"),
             };
-        if command == "PING" {
-            handle_ping(stream).await?;
-        } else if command == "ECHO" {
-            handle_echo(&a, stream).await?;
-        } else {
-            bail!("Unknown command: {}", command);
+        match command.as_str() {
+            "PING" => handle_ping(stream).await?,
+            "ECHO" => handle_echo(&a, stream).await?,
+            "SET" => handle_set(&a, stream, storage).await?,
+            "GET" => handle_get(&a, stream, storage).await?,
+            _ => bail!("Unknown command: {}", command),
         }
     } else {
         bail!("Expected array as request");

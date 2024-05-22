@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::fmt::Display;
 use std::fmt;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RObject {
     SimpleString(String),
     SimpleError(String),
