@@ -2,11 +2,12 @@ pub mod protocol;
 pub mod handler;
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use tokio::net::TcpListener;
 use tokio::io::AsyncReadExt;
 use tokio::spawn;
+use tokio::sync::RwLock;
 
 use crate::handler::handle;
 use crate::protocol::RObject;
@@ -27,7 +28,7 @@ async fn main() {
                 let s = stream.read(&mut buf)
                     .await.expect("error reading from stream");
                 if s != 0 {
-                    handle(&buf[..s], &mut stream, &storage)
+                    handle(&buf[..s], &mut stream, Arc::clone(&storage))
                         .await.expect("error handling request");
                 }
             }

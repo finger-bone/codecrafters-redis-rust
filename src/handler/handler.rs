@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{bail, Error};
-use tokio::net::TcpStream;
+use tokio::{net::TcpStream, sync::RwLock};
 
 use crate::{handler::{handle_echo, handle_get, handle_ping, handle_set}, protocol::{self, RObject}};
 
-pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: &Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
+pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
     
     let str_req = std::str::from_utf8(request)?;
 
@@ -28,8 +28,8 @@ pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: &Arc<RwLock
         match command.as_str() {
             "PING" => handle_ping(stream).await?,
             "ECHO" => handle_echo(&a, stream).await?,
-            "SET" => handle_set(&a, stream, storage).await?,
-            "GET" => handle_get(&a, stream, storage).await?,
+            "SET" => handle_set(&a, stream, Arc::clone(&storage)).await?,
+            "GET" => handle_get(&a, stream, Arc::clone(&storage)).await?,
             _ => bail!("Unknown command: {}", command),
         }
     } else {

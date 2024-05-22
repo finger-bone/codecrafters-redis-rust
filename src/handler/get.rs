@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Error;
-use tokio::{io::AsyncWriteExt, net::TcpStream};
+use tokio::{io::AsyncWriteExt, net::TcpStream, sync::RwLock};
 
 use crate::protocol::RObject;
 
-pub async fn handle_get(args: &Vec<RObject>, stream: &mut TcpStream, storage: &Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
+pub async fn handle_get(args: &Vec<RObject>, stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
     if args.len() < 2 {
         return Err(anyhow::anyhow!("GET requires at least 1 argument"));
     }
@@ -15,9 +15,7 @@ pub async fn handle_get(args: &Vec<RObject>, stream: &mut TcpStream, storage: &A
         _ => return Err(anyhow::anyhow!("Expected BulkString as key")),
     };
 
-    let storage = storage.read().expect(
-        "failed to acquire read lock handling GET"
-    );
+    let storage = storage.read().await;
 
     let value = storage.get(key).cloned().unwrap_or(RObject::Null);
 
