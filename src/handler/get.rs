@@ -15,11 +15,7 @@ pub async fn handle_get(args: &Vec<RObject>, stream: &mut TcpStream, storage: Ar
         _ => return Err(anyhow::anyhow!("Expected BulkString as key")),
     };
 
-    let storage = storage.read().await;
-
-    let value = storage.get(key).cloned().unwrap_or(RObject::Null);
-
-    drop(storage);
+    let value = storage.read().await.get(key).cloned().unwrap_or(RObject::NullBulkString);
 
     stream.write(
         value.to_string().as_bytes()

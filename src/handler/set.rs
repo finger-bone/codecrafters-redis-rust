@@ -18,11 +18,27 @@ pub async fn handle_set(args: &Vec<RObject>, stream: &mut TcpStream, storage: Ar
 
     let value = args[2].clone();
 
-    let mut storage = storage.write().await;
+    eprintln!("Setting {} to {:?}", key, value);
 
-    storage.insert(key.clone(), value);
+    storage.write().await.insert(key.clone(), value);
+    
 
-    drop(storage);
+    if args.len() >= 5 {
+        if let RObject::BulkString(s) = &args[3] {
+            if s.to_lowercase() == "px" {
+                if let RObject::BulkString(i) = &args[4] {
+                    let i = i.parse::<u64>()?;
+                    let storage = Arc::clone(&storage);
+                    let key = key.clone();
+                    eprintln!("Scheduling expiration in {}ms for key {}", i, key);
+                    tokio::spawn(async move {
+                        tokio::time::sleep(tokio::time::Duration::from_millis(i)).await;
+                        expire(key, storage).await;
+                    });
+                }
+            }
+        }
+    }
 
     stream.write(
         RObject::SimpleString("OK".to_string()).to_string().as_bytes()
@@ -31,4 +47,10 @@ pub async fn handle_set(args: &Vec<RObject>, stream: &mut TcpStream, storage: Ar
     );
 
     Ok(())
+}
+
+async fn expire(key: String, storage: Arc<RwLock<HashMap<String, RObject>>>) {
+    eprintln!("Expiring key: {}", key);
+    let mut storage = storage.write().await;
+    storage.remove(&key);
 }
