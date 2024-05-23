@@ -3,9 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::{bail, Error};
 use tokio::{net::TcpStream, sync::RwLock};
 
-use crate::{handler::{handle_echo, handle_get, handle_ping, handle_set}, protocol::{self, RObject}};
+use crate::{handler::{handle_echo, handle_get, handle_info, handle_ping, handle_set}, protocol::{self, RObject}, Config};
 
-pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
+pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>) -> Result<(), Error> {
     
     let str_req = std::str::from_utf8(request)?;
 
@@ -30,6 +30,7 @@ pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<
             "ECHO" => handle_echo(&a, stream).await?,
             "SET" => handle_set(&a, stream, Arc::clone(&storage)).await?,
             "GET" => handle_get(&a, stream, Arc::clone(&storage)).await?,
+            "INFO" => handle_info(&a, Arc::clone(&config), stream).await?,
             _ => bail!("Unknown command: {}", command),
         }
     } else {
