@@ -16,7 +16,7 @@ pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<
 
     let (parsed, _) = protocol::RObject::decode(str_req, 0)?;
 
-    eprintln!("Parsed request: {:#?}", parsed); 
+    // eprintln!("Parsed request: {:#?}", parsed); 
 
     if let protocol::RObject::Array(a) = parsed {
         let command = match a.get(0)

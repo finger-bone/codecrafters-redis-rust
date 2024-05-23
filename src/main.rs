@@ -19,7 +19,9 @@ pub use crate::config::Config;
 #[derive(StructOpt)]
 struct Cli {
     #[structopt(default_value = "6379", long)]
-    port: u64
+    port: u64,
+    #[structopt(default_value = "", long)]
+    replicaof: String, 
 }
 
 
@@ -28,9 +30,11 @@ async fn main() {
     let args = Cli::from_args();
     let port = args.port;
 
-    let config = Arc::new(RwLock::new(Config {
-        role: "master".to_string()
-    }));
+    let config_data = Config {
+        role: if args.replicaof.len() > 0 { "slave".to_string() } else { "master".to_string() }
+    };
+
+    let config = Arc::new(RwLock::new(config_data));
 
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
 
