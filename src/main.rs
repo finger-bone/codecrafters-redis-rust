@@ -1,6 +1,7 @@
 pub mod protocol;
 pub mod handler;
 pub mod config;
+pub mod handshake;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -13,6 +14,8 @@ use tokio::sync::RwLock;
 
 use crate::handler::handle;
 use crate::protocol::RObject;
+use crate::handshake::handshake;
+
 pub use crate::config::Config;
 
 
@@ -34,11 +37,16 @@ async fn main() {
         role: if args.replicaof.len() > 0 { "slave".to_string() } else { "master".to_string() },
         master_replid: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
         master_repl_offset: 0,
+        replica_of: args.replicaof.clone().replace(" ", ":")
     };
 
     let config = Arc::new(RwLock::new(config_data));
 
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
+
+    let mut _master_stream = handshake(Arc::clone(&config)).await.expect(
+        "handshake failed"
+    );
 
     let listener = TcpListener::bind(
         format!("127.0.0.1:{}", port)
