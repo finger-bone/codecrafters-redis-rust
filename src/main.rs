@@ -31,7 +31,9 @@ async fn main() {
     let port = args.port;
 
     let config_data = Config {
-        role: if args.replicaof.len() > 0 { "slave".to_string() } else { "master".to_string() }
+        role: if args.replicaof.len() > 0 { "slave".to_string() } else { "master".to_string() },
+        master_replid: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
+        master_repl_offset: 0,
     };
 
     let config = Arc::new(RwLock::new(config_data));

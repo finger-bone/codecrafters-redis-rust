@@ -20,7 +20,14 @@ pub async fn handle_info(
             stream.write(
                 RObject::BulkString(
                     format!(
-                        "role:{}\n", config.read().await.role
+                        concat!(
+                            "role:{}\n",
+                            "master_replid:{}\n",
+                            "master_repl_offset:{}\n"
+                        ),
+                        config.read().await.role,
+                        config.read().await.master_replid,
+                        config.read().await.master_repl_offset,
                     )
                 ).to_string().as_bytes()
             ).await.expect("Failed to write to stream handling info replication.")
