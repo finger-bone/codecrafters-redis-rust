@@ -17,6 +17,7 @@ use crate::protocol::RObject;
 use crate::handshake::handshake;
 
 pub use crate::config::Config;
+pub use crate::config::BUFFER_SIZE;
 
 
 #[derive(StructOpt)]
@@ -37,7 +38,8 @@ async fn main() {
         role: if args.replicaof.len() > 0 { "slave".to_string() } else { "master".to_string() },
         master_replid: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
         master_repl_offset: 0,
-        replica_of: args.replicaof.clone().replace(" ", ":")
+        replica_of: args.replicaof.clone().replace(" ", ":"),
+        working_port: port,
     };
 
     let config = Arc::new(RwLock::new(config_data));
@@ -45,14 +47,13 @@ async fn main() {
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
 
     let mut _master_stream = handshake(Arc::clone(&config)).await.expect(
-        "handshake failed"
+        "Handshake failed"
     );
 
     let listener = TcpListener::bind(
         format!("127.0.0.1:{}", port)
     ).await.unwrap();
     
-    const BUFFER_SIZE: usize = 4096;
     loop {
         let (mut stream, _) = listener.accept().await.unwrap();
         let storage = Arc::clone(&storage);

@@ -5,6 +5,8 @@ use tokio::{net::TcpStream, sync::RwLock};
 
 use crate::{handler::{handle_echo, handle_get, handle_info, handle_ping, handle_set}, protocol::{self, RObject}, Config};
 
+use super::handle_replconf;
+
 pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>) -> Result<(), Error> {
     
     let str_req = std::str::from_utf8(request)?;
@@ -31,6 +33,7 @@ pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<
             "SET" => handle_set(&a, stream, Arc::clone(&storage)).await?,
             "GET" => handle_get(&a, stream, Arc::clone(&storage)).await?,
             "INFO" => handle_info(&a, Arc::clone(&config), stream).await?,
+            "REPLCONF" => handle_replconf(&a, stream, Arc::clone(&config)).await?,
             _ => bail!("Unknown command: {}", command),
         }
     } else {
