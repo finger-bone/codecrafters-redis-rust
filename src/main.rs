@@ -4,6 +4,7 @@ pub mod handler;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use structopt::StructOpt;
 use tokio::net::TcpListener;
 use tokio::io::AsyncReadExt;
 use tokio::spawn;
@@ -12,11 +13,21 @@ use tokio::sync::RwLock;
 use crate::handler::handle;
 use crate::protocol::RObject;
 
+#[derive(StructOpt)]
+struct Cli {
+    port: Option<u64>
+}
+
 #[tokio::main]
 async fn main() {
+    let args = Cli::from_args();
+    let port = args.port.unwrap_or(6379);
+
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
     
-    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
+    let listener = TcpListener::bind(
+        format!("127.0.0.1:{}", port)
+    ).await.unwrap();
     
     const BUFFER_SIZE: usize = 4096;
     loop {
