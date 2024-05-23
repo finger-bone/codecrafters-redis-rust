@@ -15,13 +15,14 @@ use crate::protocol::RObject;
 
 #[derive(StructOpt)]
 struct Cli {
-    port: Option<u64>
+    #[structopt(default_value = "6379", long)]
+    port: u64
 }
 
 #[tokio::main]
 async fn main() {
     let args = Cli::from_args();
-    let port = args.port.unwrap_or(6379);
+    let port = args.port;
 
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
     
