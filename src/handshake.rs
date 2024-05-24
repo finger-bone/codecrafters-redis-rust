@@ -1,9 +1,8 @@
 use std::sync::Arc;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::RwLock};
 
-use anyhow::Error;
+use anyhow::{bail, Error};
 use tokio::net::TcpStream;
-
 use crate::BUFFER_SIZE;
 use crate::{protocol::RObject, Config};
 
@@ -27,7 +26,10 @@ pub async fn handshake(
     ).await.expect("Failed to ping when handshaking with master");
     
     let mut ping_response_buffer = [0; BUFFER_SIZE];
-    stream.read(&mut ping_response_buffer).await.expect("Failed to receive ping response when handshaking");
+    // stream.read(&mut ping_response_buffer).await.expect("Failed to receive ping response when handshaking");
+    // let (ping_res, _) = RObject::decode(std::str::from_utf8(&ping_response_buffer).expect(
+    //     "Failed to decode ping response when handshaking."
+    // ), 0).expect("Failed to parse the ping response when handshaking.");
 
     // 2. s->m replconf listening-port <>
     // replconf cap psync2
