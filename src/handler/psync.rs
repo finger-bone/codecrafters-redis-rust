@@ -13,7 +13,7 @@ pub async fn handle_psync(
 ) -> Result<(), Error> {
     stream.write(
         RObject::SimpleString(
-            format!("FULLSYNC {} 0", config.read().await.master_replid)
+            format!("FULLRESYNC {} 0", config.read().await.master_replid)
         ).to_string().as_bytes()
     ).await.expect(
         "Failed to response when fullsync."
