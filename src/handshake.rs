@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::RwLock};
 
-use anyhow::{bail, Error};
+use anyhow::Error;
 use tokio::net::TcpStream;
 use crate::BUFFER_SIZE;
 use crate::{protocol::RObject, Config};
