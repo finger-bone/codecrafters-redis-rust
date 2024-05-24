@@ -62,5 +62,19 @@ pub async fn handshake(
     let mut replconf_capa_response = [0; BUFFER_SIZE];
     stream.read(&mut replconf_capa_response).await.expect("Failed to receive capa responose when handshaking");
 
+    // 3. m->s psync ? -1
+    stream.write_all(
+        RObject::Array(
+            vec![
+                RObject::BulkString("PSYNC".to_string()),
+                RObject::BulkString("?".to_string()),
+                RObject::BulkString("-1".to_string())
+            ]
+        ).to_string().as_bytes()
+    ).await.expect("Failed to send psync");
+
+    let mut psync_response = [0; BUFFER_SIZE];
+    stream.read(&mut psync_response).await.expect("Failed to receive psync response when handshaking.");
+
     Ok(Some(stream))
 }

@@ -3,9 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::{bail, Error};
 use tokio::{net::TcpStream, sync::RwLock};
 
-use crate::{handler::{handle_echo, handle_get, handle_info, handle_ping, handle_set}, protocol::{self, RObject}, Config};
-
-use super::handle_replconf;
+use crate::{handler::{handle_echo, handle_replconf, handle_get, handle_info, handle_ping, handle_set}, protocol::{self, RObject}, Config};
 
 pub async fn handle(request: &[u8], stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>) -> Result<(), Error> {
     
