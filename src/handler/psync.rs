@@ -16,7 +16,14 @@ pub async fn handle_psync(
             format!("FULLRESYNC {} 0", config.read().await.master_replid)
         ).to_string().as_bytes()
     ).await.expect(
-        "Failed to response when fullsync."
+        "Failed to respond when fullsync."
     );
+
+    let rdb = "";
+
+    stream.write(
+        format!("${}\r\n{}", rdb.len(), rdb).as_bytes()
+    ).await.expect("Failed to respond rdb file");
+
     Ok(())
 } 
