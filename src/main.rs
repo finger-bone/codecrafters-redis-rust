@@ -77,8 +77,6 @@ async fn main() {
         });
     }
 
-    eprintln!("starting server on port {}", port);
-
     let listener = TcpListener::bind(
         format!("127.0.0.1:{}", port)
     ).await.unwrap();
