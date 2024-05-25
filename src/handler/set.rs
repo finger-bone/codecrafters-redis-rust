@@ -4,9 +4,9 @@ use tokio::sync::RwLock;
 use anyhow::Error;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
-use crate::protocol::RObject;
+use crate::{config::ServerRole, protocol::RObject, Config};
 
-pub async fn handle_set(args: &Vec<RObject>, stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>) -> Result<(), Error> {
+pub async fn handle_set(args: &Vec<RObject>, stream: &mut TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>) -> Result<(), Error> {
     if args.len() < 3 {
         return Err(anyhow::anyhow!("SET requires at least 2 arguments"));
     }
@@ -40,11 +40,13 @@ pub async fn handle_set(args: &Vec<RObject>, stream: &mut TcpStream, storage: Ar
         }
     }
 
-    stream.write(
-        RObject::SimpleString("OK".to_string()).to_string().as_bytes()
-    ).await.expect(
-        "failed to write response to stream handling SET"
-    );
+    if config.read().await.role == ServerRole::Master {
+        stream.write(
+            RObject::SimpleString("OK".to_string()).to_string().as_bytes()
+        ).await.expect(
+            "failed to write response to stream handling SET"
+        );
+    }
 
     Ok(())
 }

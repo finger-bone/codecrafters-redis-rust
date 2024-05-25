@@ -33,7 +33,7 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                 handle_echo(&a, &mut stream).await?;
             },
             "SET" => {
-                handle_set(&a, &mut stream, Arc::clone(&storage)).await?;
+                handle_set(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config)).await?;
                 broadcaster.write().await.broadcast(request).await?;
             },
             "GET" => {
