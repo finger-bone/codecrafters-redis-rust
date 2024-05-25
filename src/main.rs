@@ -52,7 +52,7 @@ async fn main() {
 
     let broadcaster = Arc::new(RwLock::new(Broadcaster{ subscribers: vec![] }));
 
-    let mut _master_stream = handshake(Arc::clone(&config)).await.expect(
+    let mut master_stream = handshake(Arc::clone(&config)).await.expect(
         "Handshake failed"
     );
 
@@ -60,6 +60,27 @@ async fn main() {
         format!("127.0.0.1:{}", port)
     ).await.unwrap();
     
+    if master_stream.is_some() {
+        let mut master_stream = master_stream.unwrap();
+        let storage = Arc::clone(&storage);
+        let config = Arc::clone(&config);
+        let broadcaster = Arc::clone(&broadcaster);
+        spawn(async move {
+            loop {
+                let mut buf = [0; BUFFER_SIZE];
+                let s = master_stream.read(&mut buf)
+                    .await.expect("error reading from stream");
+                if s != 0 {
+                    match handle(&buf[..s], master_stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster))
+                        .await.expect("error handling request") {
+                            HandleResult::Normal(s) => master_stream = s,
+                            HandleResult::Subscribed => break,
+                        }
+                }
+            }
+        });
+    }
+
     loop {
         let (mut stream, _) = listener.accept().await.unwrap();
         let storage = Arc::clone(&storage);
