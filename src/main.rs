@@ -2,10 +2,13 @@ pub mod protocol;
 pub mod handler;
 pub mod config;
 pub mod handshake;
+pub mod broadcast;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use broadcast::Broadcaster;
+use handler::HandleResult;
 use structopt::StructOpt;
 use tokio::net::TcpListener;
 use tokio::io::AsyncReadExt;
@@ -46,6 +49,8 @@ async fn main() {
 
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
 
+    let broadcaster = Arc::new(RwLock::new(Broadcaster{ subscribers: vec![] }));
+
     let mut _master_stream = handshake(Arc::clone(&config)).await.expect(
         "Handshake failed"
     );
@@ -58,14 +63,18 @@ async fn main() {
         let (mut stream, _) = listener.accept().await.unwrap();
         let storage = Arc::clone(&storage);
         let config = Arc::clone(&config);
+        let broadcaster = Arc::clone(&broadcaster);
         spawn(async move {
             loop {
                 let mut buf = [0; BUFFER_SIZE];
                 let s = stream.read(&mut buf)
                     .await.expect("error reading from stream");
                 if s != 0 {
-                    handle(&buf[..s], &mut stream, Arc::clone(&storage), Arc::clone(&config))
-                        .await.expect("error handling request");
+                    match handle(&buf[..s], stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster))
+                        .await.expect("error handling request") {
+                            HandleResult::Normal(s) => stream = s,
+                            HandleResult::Subscribed => break,
+                        }
                 }
             }
         });

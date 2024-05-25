@@ -30,5 +30,6 @@ pub async fn handle_replconf(
     stream.write(
         RObject::SimpleString("OK".to_string()).to_string().as_bytes()
     ).await.expect("Failed to respond to replconf");
+
     Ok(())
 }

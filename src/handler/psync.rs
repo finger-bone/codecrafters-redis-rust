@@ -4,13 +4,14 @@ use tokio::{io::AsyncWriteExt, sync::RwLock};
 use anyhow::Error;
 use tokio::net::TcpStream;
 
-use crate::{protocol::RObject, Config};
+use crate::{broadcast::Broadcaster, protocol::RObject, Config};
 use hex;
 
 pub async fn handle_psync(
     _args: &Vec<RObject>,
-    stream: &mut TcpStream,
+    mut stream: TcpStream,
     config: Arc<RwLock<Config>>,
+    broadcaster: Arc<RwLock<Broadcaster>>
 ) -> Result<(), Error> {
     stream.write(
         RObject::SimpleString(
@@ -28,6 +29,8 @@ pub async fn handle_psync(
     ).await.expect("Failed to write RDB length");
 
     stream.write(&rdb_bytes).await.expect("Failed to write RDB file");
+
+    broadcaster.write().await.subscribe(stream);
 
     Ok(())
 }
