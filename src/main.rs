@@ -55,10 +55,6 @@ async fn main() {
     let master_stream = handshake(Arc::clone(&config)).await.expect(
         "Handshake failed"
     );
-
-    let listener = TcpListener::bind(
-        format!("127.0.0.1:{}", port)
-    ).await.unwrap();
     
     if master_stream.is_some() {
         let mut master_stream = master_stream.unwrap();
@@ -67,7 +63,7 @@ async fn main() {
         let broadcaster = Arc::clone(&broadcaster);
         spawn(async move {
             loop {
-                let mut buf = [0; BUFFER_SIZE];
+                let mut buf: [u8; 4096] = [0; BUFFER_SIZE];
                 let s = master_stream.read(&mut buf)
                     .await.expect("error reading from stream");
                 if s != 0 {
@@ -81,9 +77,15 @@ async fn main() {
         });
     }
 
+    eprintln!("starting server on port {}", port);
+
+    let listener = TcpListener::bind(
+        format!("127.0.0.1:{}", port)
+    ).await.unwrap();
+
     loop {
         let (mut stream, _) = listener.accept().await.unwrap();
-        let storage = Arc::clone(&storage);
+        let storage: Arc<RwLock<HashMap<String, RObject>>> = Arc::clone(&storage);
         let config = Arc::clone(&config);
         let broadcaster = Arc::clone(&broadcaster);
         spawn(async move {
