@@ -12,6 +12,8 @@ impl Broadcaster {
     }
 
     pub async fn broadcast(&mut self, message: &[u8]) -> Result<(), Error>{
+        println!("Scheduled to broadcast: {:?}", std::str::from_utf8(message).unwrap());
+        
         let mut futures = Vec::new();
 
         for subscriber in &mut self.subscribers {

@@ -78,5 +78,8 @@ pub async fn handshake(
     let mut psync_response = [0; BUFFER_SIZE];
     stream.read(&mut psync_response).await.expect("Failed to receive psync response when handshaking.");
 
+    let mut rdb_response = [0; BUFFER_SIZE];
+    stream.read(&mut rdb_response).await.expect("Failed to receive rdb response when handshaking.");
+
     Ok(Some(stream))
 }

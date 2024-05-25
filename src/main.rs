@@ -52,7 +52,7 @@ async fn main() {
 
     let broadcaster = Arc::new(RwLock::new(Broadcaster{ subscribers: vec![] }));
 
-    let mut master_stream = handshake(Arc::clone(&config)).await.expect(
+    let master_stream = handshake(Arc::clone(&config)).await.expect(
         "Handshake failed"
     );
 
