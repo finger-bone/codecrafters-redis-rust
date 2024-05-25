@@ -18,27 +18,26 @@ pub async fn handle_replconf(
 
     match target.as_str() {
         "listening-port" => {
-
+            stream.write(
+                RObject::SimpleString("OK".to_string()).to_string().as_bytes()
+            ).await.expect("Failed to respond to replconf");
         },
         "capa" => {
-
+            stream.write(
+                RObject::SimpleString("OK".to_string()).to_string().as_bytes()
+            ).await.expect("Failed to respond to replconf");
         }
         "GETACK" => {
-            // stream.write(
-            //     RObject::Array(vec![
-            //         RObject::BulkString("REPLCONF".to_string()),
-            //         RObject::BulkString("ACK".to_string()),
-            //         RObject::BulkString("0".to_string())
-            //     ]).to_string().as_bytes()
-            // ).await.expect("Failed to respond to replconf GETACK");
+            stream.write(
+                RObject::Array(vec![
+                    RObject::BulkString("REPLCONF".to_string()),
+                    RObject::BulkString("ACK".to_string()),
+                    RObject::BulkString("0".to_string())
+                ]).to_string().as_bytes()
+            ).await.expect("Failed to respond to replconf GETACK");
         }
         _ => bail!("Unrecognized replconf target")
     }
-
-    
-    stream.write(
-        RObject::SimpleString("OK".to_string()).to_string().as_bytes()
-    ).await.expect("Failed to respond to replconf");
 
     Ok(())
 }
