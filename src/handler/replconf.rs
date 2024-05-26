@@ -22,11 +22,6 @@ pub async fn handle_replconf(
                 RObject::SimpleString("OK".to_string()).to_string().as_bytes()
             ).await.expect("Failed to respond to replconf");
         },
-        "capa" => {
-            stream.write(
-                RObject::SimpleString("OK".to_string()).to_string().as_bytes()
-            ).await.expect("Failed to respond to replconf");
-        }
         "GETACK" => {
             stream.write(
                 RObject::Array(vec![
@@ -35,6 +30,11 @@ pub async fn handle_replconf(
                     RObject::BulkString(config.read().await.slave_consumed.to_string())
                 ]).to_string().as_bytes()
             ).await.expect("Failed to respond to replconf GETACK");
+        },
+        "capa" => {
+            stream.write(
+                RObject::SimpleString("OK".to_string()).to_string().as_bytes()
+            ).await.expect("Failed to respond to replconf");
         }
         _ => bail!("Unrecognized replconf target")
     }

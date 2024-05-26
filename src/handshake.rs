@@ -1,5 +1,7 @@
 use std::sync::Arc;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::RwLock};
+use tokio::sync::RwLock;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
 
 use anyhow::Error;
 use tokio::net::TcpStream;
@@ -78,8 +80,26 @@ pub async fn handshake(
     let mut psync_response = [0; BUFFER_SIZE];
     stream.read(&mut psync_response).await.expect("Failed to receive psync response when handshaking.");
 
-    let mut rdb_response = [0; BUFFER_SIZE];
-    stream.read(&mut rdb_response).await.expect("Failed to receive rdb response when handshaking.");
 
+    // Read the length of the RDB file
+    let mut len_buf = Vec::new();
+    // the first byte is the '$'
+    let mut dollar = [0; 1];
+    stream.read_exact(&mut dollar).await.expect("Failed to read byte");
+    loop {
+        let mut byte = [0; 1];
+        stream.read_exact(&mut byte).await.expect("Failed to read byte");
+        // read until we reach the \r\n
+        if byte[0] == b'\n' && len_buf.last() == Some(&b'\r') {
+            len_buf.pop(); // Remove the '\r'
+            break;
+        }
+        len_buf.push(byte[0]);
+    }
+    let len_str = std::str::from_utf8(&len_buf).expect("Failed to decode RDB length").trim();
+    let len: usize = len_str.parse().expect("Failed to parse RDB length");
+    let mut rdb_buf = vec![0; len];
+    stream.read_exact(&mut rdb_buf).await.expect("Failed to read RDB file");
+    
     Ok(Some(stream))
 }
