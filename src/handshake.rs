@@ -80,11 +80,12 @@ pub async fn handshake(
     let mut psync_response = [0; BUFFER_SIZE];
     stream.read(&mut psync_response).await.expect("Failed to receive psync response when handshaking.");
 
-
+    eprintln!("Ready to receive RDB file");
     // Read the length of the RDB file
     let mut len_buf = Vec::new();
     // the first byte is the '$'
     let mut dollar = [0; 1];
+    eprintln!("Reading the dollar");
     stream.read_exact(&mut dollar).await.expect("Failed to read byte");
     loop {
         let mut byte = [0; 1];
@@ -98,6 +99,7 @@ pub async fn handshake(
     }
     let len_str = std::str::from_utf8(&len_buf).expect("Failed to decode RDB length").trim();
     let len: usize = len_str.parse().expect("Failed to parse RDB length");
+    eprintln!("RDB length: {}", len);
     let mut rdb_buf = vec![0; len];
     stream.read_exact(&mut rdb_buf).await.expect("Failed to read RDB file");
     
