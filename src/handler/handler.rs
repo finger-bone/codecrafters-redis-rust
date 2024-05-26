@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::{bail, Error};
 use tokio::{net::TcpStream, sync::RwLock};
 
-use crate::{broadcast::Broadcaster, config::ServerRole, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set, handle_wait}, protocol::{self, RObject}, Config};
+use crate::{broadcast::Broadcaster, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set, handle_wait}, protocol::{self, RObject}, Config};
 
 pub enum HandleResult {
     Subscribed,

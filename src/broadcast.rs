@@ -49,7 +49,7 @@ impl Broadcaster {
 
             let mut buffer = [0; BUFFER_SIZE];
             subscriber.read(&mut buffer).await.expect("Failed to read REPLCONF GETACK response");
-
+            eprintln!("Received REPLCONF GETACK response: {:?}", String::from_utf8_lossy(buffer.as_ref()));
             let (response, _) = RObject::decode(std::str::from_utf8(&buffer).expect("Failed to decode REPLCONF GETACK response"), 0).expect("Failed to parse REPLCONF GETACK response");
             // response should be an integer
             // add one to count if that equals to the expected bytes
