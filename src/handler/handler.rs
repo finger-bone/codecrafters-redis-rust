@@ -51,7 +51,7 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                     return Ok(HandleResult::Subscribed);
                 },
                 "WAIT" => {
-                    handle_wait(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config)).await?;
+                    handle_wait(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster)).await?;
                 }
                 _ => bail!("Unknown command: {}", command),
             }
