@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::{bail, Error};
 use tokio::{net::TcpStream, sync::RwLock};
 
-use crate::{broadcast::Broadcaster, config::ServerRole, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set}, protocol::{self, RObject}, Config};
+use crate::{broadcast::Broadcaster, config::ServerRole, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set, handle_wait}, protocol::{self, RObject}, Config};
 
 pub enum HandleResult {
     Subscribed,
@@ -50,6 +50,9 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                     handle_psync(&a, stream, Arc::clone(&config), Arc::clone(&broadcaster)).await?;
                     return Ok(HandleResult::Subscribed);
                 },
+                "WAIT" => {
+                    handle_wait(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config)).await?;
+                }
                 _ => bail!("Unknown command: {}", command),
             }
         } else {
