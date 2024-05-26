@@ -53,7 +53,7 @@ impl Broadcaster {
             let (response, _) = RObject::decode(std::str::from_utf8(&buffer).expect("Failed to decode REPLCONF GETACK response"), 0).expect("Failed to parse REPLCONF GETACK response");
             if let RObject::Array(i) = response {
                 if let RObject::BulkString(s) = &i[2] {
-                    count += s.parse::<usize>().expect("Failed to parse REPLCONF GETACK response");
+                    count += (s.parse::<usize>().expect("Failed to parse REPLCONF GETACK response") == expect_bytes) as usize;
                 }
             }
         }
