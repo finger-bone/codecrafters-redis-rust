@@ -49,12 +49,26 @@ impl Broadcaster {
 
             let mut buffer = [0; BUFFER_SIZE];
             subscriber.read(&mut buffer).await.expect("Failed to read REPLCONF GETACK response");
-            eprintln!("Received REPLCONF GETACK response: {:?}", String::from_utf8_lossy(buffer.as_ref()));
-            let (response, _) = RObject::decode(std::str::from_utf8(&buffer).expect("Failed to decode REPLCONF GETACK response"), 0).expect("Failed to parse REPLCONF GETACK response");
-            if let RObject::Array(i) = response {
-                if let RObject::BulkString(s) = &i[2] {
-                    count += (s.parse::<usize>().expect("Failed to parse REPLCONF GETACK response") == expect_bytes) as usize;
+            eprintln!(
+                "Received REPLCONF GETACK response: {:?} from {:?}",
+                 String::from_utf8_lossy(buffer.as_ref()),
+                subscriber.peer_addr().unwrap()
+            );
+
+            let response = match RObject::decode(std::str::from_utf8(&buffer).expect("Failed to decode REPLCONF GETACK response"), 0) {
+                Ok((RObject::Array(a), _)) => a,
+                _ => {
+                    eprintln!("Failed to parse REPLCONF GETACK response");
+                    continue;
                 }
+            };
+            if let RObject::BulkString(s) = &response[2] {
+                // if s equals to the expected bytes, increment count
+                count += if s.parse::<usize>().expect("Failed to parse REPLCONF GETACK response") == expect_bytes {
+                    1
+                } else {
+                    0
+                };
             }
         }
     
