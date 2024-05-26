@@ -77,8 +77,21 @@ pub async fn handshake(
         ).to_string().as_bytes()
     ).await.expect("Failed to send psync");
 
-    let mut psync_response = [0; BUFFER_SIZE];
-    stream.read(&mut psync_response).await.expect("Failed to receive psync response when handshaking.");
+    // read until meet \r\n
+    let mut psync_response = Vec::new();
+    loop {
+        let mut byte = [0; 1];
+        stream.read_exact(&mut byte).await.expect("Failed to read byte");
+        // read until we reach the \r\n
+        if byte[0] == b'\n' && psync_response.last() == Some(&b'\r') {
+            psync_response.pop(); // Remove the '\r'
+            break;
+        }
+        psync_response.push(byte[0]);
+    }
+
+
+    eprintln!("PSYNC response: {}", String::from_utf8_lossy(&psync_response));
 
     eprintln!("Ready to receive RDB file");
     // Read the length of the RDB file
@@ -87,6 +100,7 @@ pub async fn handshake(
     let mut dollar = [0; 1];
     eprintln!("Reading the dollar");
     stream.read_exact(&mut dollar).await.expect("Failed to read byte");
+    eprintln!("Reading the length");
     loop {
         let mut byte = [0; 1];
         stream.read_exact(&mut byte).await.expect("Failed to read byte");

@@ -22,4 +22,4 @@ pub struct Config {
     pub slave_consumed: usize,
 }
 
-pub const BUFFER_SIZE: usize = 1024 * 4;
+pub const BUFFER_SIZE: usize = 128 * 2;

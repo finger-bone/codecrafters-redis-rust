@@ -64,7 +64,7 @@ async fn main() {
         let broadcaster = Arc::clone(&broadcaster);
         spawn(async move {
             loop {
-                let mut buf: [u8; 4096] = [0; BUFFER_SIZE];
+                let mut buf = [0; BUFFER_SIZE];
                 let s = master_stream.read(&mut buf)
                     .await.expect("error reading from stream");
                 if s != 0 {
