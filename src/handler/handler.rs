@@ -3,14 +3,14 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::{bail, Error};
 use tokio::{net::TcpStream, sync::RwLock};
 
-use crate::{broadcast::Broadcaster, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set}, protocol::{self, RObject}, Config};
+use crate::{broadcast::Broadcaster, config::ServerRole, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set}, protocol::{self, RObject}, Config};
 
 pub enum HandleResult {
     Subscribed,
     Normal(TcpStream),
 }
 
-pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>, broadcaster: Arc<RwLock<Broadcaster>>, from_master: bool) -> Result<HandleResult, Error> {
+pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>, broadcaster: Arc<RwLock<Broadcaster>>) -> Result<HandleResult, Error> {
     
     let str_req = String::from_utf8_lossy(request).to_string();
 
@@ -56,7 +56,7 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
             bail!("Expected array as request");
         }
 
-        if from_master {
+        if config.read().await.role == ServerRole::Slave {
             config.write().await.slave_consumed += consumed - start;    
         }
         start = consumed;

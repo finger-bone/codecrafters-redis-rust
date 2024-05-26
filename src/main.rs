@@ -68,7 +68,7 @@ async fn main() {
                 let s = master_stream.read(&mut buf)
                     .await.expect("error reading from stream");
                 if s != 0 {
-                    match handle(&buf[..s], master_stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster), true)
+                    match handle(&buf[..s], master_stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster))
                     .await.expect("error handling request") {
                         HandleResult::Normal(s) => master_stream = s,
                         HandleResult::Subscribed => break,
@@ -93,7 +93,7 @@ async fn main() {
                 let s = stream.read(&mut buf)
                     .await.expect("error reading from stream");
                 if s != 0 {
-                    match handle(&buf[..s], stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster), false)
+                    match handle(&buf[..s], stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster))
                         .await.expect("error handling request") {
                             HandleResult::Normal(s) => stream = s,
                             HandleResult::Subscribed => break,
