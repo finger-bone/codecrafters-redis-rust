@@ -44,7 +44,7 @@ async fn main() {
         master_repl_offset: 0,
         replica_of: args.replicaof.clone().replace(" ", ":"),
         working_port: port,
-        slave_consumed: 0
+        consumed: 0
     };
 
     let config = Arc::new(RwLock::new(config_data));

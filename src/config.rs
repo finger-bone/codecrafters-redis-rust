@@ -19,7 +19,7 @@ pub struct Config {
     pub master_repl_offset: usize,
     pub replica_of: String,
     pub working_port: u64,
-    pub slave_consumed: usize,
+    pub consumed: usize,
 }
 
 pub const BUFFER_SIZE: usize = 128 * 2;

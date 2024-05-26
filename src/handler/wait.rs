@@ -9,12 +9,16 @@ pub async fn handle_wait(
     _args: &Vec<RObject>, 
     stream: &mut TcpStream, 
     _storage: Arc<RwLock<HashMap<String, RObject>>>, 
-    _config: Arc<RwLock<Config>>,
+    config: Arc<RwLock<Config>>,
     broadcaster: Arc<RwLock<Broadcaster>>,
 ) -> Result<(), Error> { 
     stream.write(
         RObject::Integer(
-            broadcaster.read().await.subscribers.len() as i64
+            broadcaster.write().await.check_sync(
+                config.read().await.consumed
+            ).await.expect(
+                "Failed to check sync status in wait handler."
+            ) as i64
         ).to_string().as_bytes()
     ).await.expect("Failed to write to stream handling wait.");
     Ok(())

@@ -27,7 +27,7 @@ pub async fn handle_replconf(
                 RObject::Array(vec![
                     RObject::BulkString("REPLCONF".to_string()),
                     RObject::BulkString("ACK".to_string()),
-                    RObject::BulkString(config.read().await.slave_consumed.to_string())
+                    RObject::BulkString(config.read().await.consumed.to_string())
                 ]).to_string().as_bytes()
             ).await.expect("Failed to respond to replconf GETACK");
         },

@@ -58,10 +58,7 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
         } else {
             bail!("Expected array as request");
         }
-
-        if config.read().await.role == ServerRole::Slave {
-            config.write().await.slave_consumed += consumed - start;    
-        }
+        config.write().await.consumed += consumed - start;    
         start = consumed;
     }
 
