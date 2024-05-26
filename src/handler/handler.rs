@@ -10,22 +10,16 @@ pub enum HandleResult {
     Normal(TcpStream),
 }
 
-pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>, broadcaster: Arc<RwLock<Broadcaster>>) -> Result<HandleResult, Error> {
+pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>, broadcaster: Arc<RwLock<Broadcaster>>, from_master: bool) -> Result<HandleResult, Error> {
     
     let str_req = String::from_utf8_lossy(request).to_string();
-
-    let mut commands = vec![];
 
     let mut start = 0;
 
     while start < str_req.len() {
         let (parsed, consumed) = protocol::RObject::decode(&str_req, start)?;
-        start = consumed;
-        commands.push(parsed);
-    }
-
-    for command in commands {
-        if let protocol::RObject::Array(a) = command {
+        
+        if let protocol::RObject::Array(a) = parsed {
             let command = match a.get(0)
                 .ok_or_else(|| anyhow::anyhow!("Empty array"))? {
                     protocol::RObject::SimpleString(s) => s,
@@ -34,7 +28,7 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                 };
             match command.as_str() {
                 "PING" => {
-                    handle_ping(&mut stream).await?;
+                    handle_ping(&mut stream, Arc::clone(&config)).await?;
                 },
                 "ECHO" => {
                     handle_echo(&a, &mut stream).await?;
@@ -61,6 +55,11 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
         } else {
             bail!("Expected array as request");
         }
+
+        if from_master {
+            config.write().await.slave_consumed += consumed - start;    
+        }
+        start = consumed;
     }
 
     Ok(HandleResult::Normal(stream))

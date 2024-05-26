@@ -9,7 +9,7 @@ use crate::{protocol::RObject, Config};
 pub async fn handle_replconf(
     args: &Vec<RObject>,
     stream: &mut TcpStream,
-    _config: Arc<RwLock<Config>>
+    config: Arc<RwLock<Config>>
 ) -> Result<(), Error> {
     let target = match args.get(1) {
         Some(RObject::BulkString(s)) => s,
@@ -32,7 +32,7 @@ pub async fn handle_replconf(
                 RObject::Array(vec![
                     RObject::BulkString("REPLCONF".to_string()),
                     RObject::BulkString("ACK".to_string()),
-                    RObject::BulkString("0".to_string())
+                    RObject::BulkString(config.read().await.slave_consumed.to_string())
                 ]).to_string().as_bytes()
             ).await.expect("Failed to respond to replconf GETACK");
         }
