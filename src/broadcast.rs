@@ -1,16 +1,21 @@
+use std::sync::Arc;
+
 use anyhow::Error;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream};
-use futures::future::try_join_all;
+use futures::lock::Mutex;
 
 use crate::{protocol::RObject, BUFFER_SIZE};
 
 pub struct Broadcaster {
-    pub subscribers: Vec<TcpStream>
+    pub subscribers: Vec<Arc<Mutex<TcpStream>>>
 }
 
 impl Broadcaster {
+
     pub fn subscribe(&mut self, target: TcpStream) {
-        self.subscribers.push(target);
+        self.subscribers.push(
+            Arc::new(Mutex::new(target))
+        );
     }
 
     pub async fn broadcast(&mut self, message: &[u8]) -> Result<(), Error>{
@@ -18,25 +23,26 @@ impl Broadcaster {
         
         let mut futures = Vec::new();
 
-        for subscriber in &mut self.subscribers {
-            let future = subscriber.write_all(message);
+        for subscriber in &self.subscribers {
+            let subscriber = subscriber.clone();
+            let future = async move {
+                let mut subscriber = subscriber.lock().await;
+                subscriber.write_all(message).await.expect("Failed to broadcast");
+            };
             futures.push(future);
         }
 
-        match try_join_all(futures).await {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                eprintln!("Failed to broadcast: {:?}", e);
-                Err(Error::from(e))
-            }
-        }
+        Ok(())
     }
 
     pub async fn check_sync(&mut self, expect_bytes: usize) -> Result<usize, Error> {
         let mut count = 0;
+
         // for each subscriber, sends REPLCONF GETACK *
         // then check if the response is equal to the expected bytes
         for subscriber in &mut self.subscribers {
+            let mut subscriber = subscriber.lock().await;
+            
             subscriber.write_all(
                 RObject::Array(
                     vec![
