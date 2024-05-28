@@ -28,12 +28,12 @@ pub use crate::state::BUFFER_SIZE;
 struct Cli {
     #[structopt(default_value = "6379", long)]
     port: u64,
-    #[structopt(default_value = "", long)]
-    replicaof: String, 
-    #[structopt(default_value = "/dir", long)]
-    dir: String,
-    #[structopt(default_value = "dump.rdb", long)]
-    dbfilename: String,
+    #[structopt(long)]
+    replicaof: Option<String>, 
+    #[structopt(long)]
+    dir: Option<String>,
+    #[structopt(long)]
+    dbfilename: Option<String>,
 }
 
 
@@ -43,10 +43,13 @@ async fn main() {
     let port = args.port;
 
     let state_data = State {
-        role: if args.replicaof.len() > 0 { ServerRole::Slave } else { ServerRole::Master },
+        role: if args.replicaof.is_some() { ServerRole::Slave } else { ServerRole::Master },
         master_replid: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
         master_repl_offset: 0,
-        replica_of: args.replicaof.clone().replace(" ", ":"),
+        replica_of: match args.replicaof {
+            Some(s) => Some(s.replace(" ", ":")),
+            None => None,
+        },
         working_port: port,
         consumed: 0,
         dir: args.dir.clone(),

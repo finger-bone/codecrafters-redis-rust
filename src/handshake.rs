@@ -11,7 +11,7 @@ use crate::{protocol::RObject, State};
 pub async fn handshake(
     state: Arc<RwLock<State>>
 ) -> Result<Option<TcpStream>, Error> {
-    let address = state.read().await.replica_of.clone();
+    let address = state.read().await.replica_of.clone().unwrap();
     if address.len() == 0 {
         return Ok(None);
     }

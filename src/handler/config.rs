@@ -28,7 +28,7 @@ pub async fn handle_config(
                         RObject::Array(
                             vec![
                                 RObject::BulkString("dir".to_string()),
-                                RObject::BulkString(state.read().await.dir.clone())
+                                RObject::BulkString(state.read().await.dir.clone().unwrap_or("".to_string()))
                             ]
                         ).to_string().as_bytes()
                     ).await.expect("Failed to write to stream handling config GET dir.")
@@ -38,7 +38,7 @@ pub async fn handle_config(
                         RObject::Array(
                             vec![
                                 RObject::BulkString("dbfilename".to_string()),
-                                RObject::BulkString(state.read().await.dbfilename.clone())
+                                RObject::BulkString(state.read().await.dbfilename.clone().unwrap_or("".to_string()))
                             ]
                         ).to_string().as_bytes()
                     ).await.expect("Failed to write to stream handling config GET dbfilename.")

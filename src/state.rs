@@ -17,11 +17,11 @@ pub struct State {
     pub role: ServerRole,
     pub master_replid: String,
     pub master_repl_offset: usize,
-    pub replica_of: String,
+    pub replica_of: Option<String>,
     pub working_port: u64,
     pub consumed: usize,
-    pub dir: String,
-    pub dbfilename: String,
+    pub dir: Option<String>,
+    pub dbfilename: Option<String>,
 }
 
 pub const BUFFER_SIZE: usize = 128 * 2;
