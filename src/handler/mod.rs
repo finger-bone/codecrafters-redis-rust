@@ -18,3 +18,4 @@ pub(crate) use info::handle_info;
 pub(crate) use replconf::handle_replconf;
 pub(crate) use psync::handle_psync;
 pub(crate) use wait::handle_wait;
+pub(crate) use config::handle_config;
