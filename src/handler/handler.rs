@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{bail, Error};
-use tokio::{net::TcpStream, sync::RwLock};
+use tokio::{io::AsyncWriteExt, net::TcpStream, sync::RwLock};
 
 use crate::{broadcast::Broadcaster, handler::{handle_echo, handle_config, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set, handle_wait}, protocol::{self, RObject}, State};
 
@@ -57,6 +57,13 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                 "CONFIG" => {
                     handle_config(&a, &mut stream, Arc::clone(&state)).await?;
                 },
+                "KEYS" => {
+                    stream.write_all(
+                        RObject::Array(
+                            storage.read().await.keys().map(|k| RObject::BulkString(k.clone())).collect()
+                        ).to_string().as_bytes()
+                    ).await?;
+                }
                 _ => bail!("Unknown command: {}", command),
             }
         } else {
