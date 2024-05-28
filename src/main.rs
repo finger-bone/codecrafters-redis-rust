@@ -51,7 +51,7 @@ async fn main() {
 
     let storage = Arc::new(RwLock::new(HashMap::<String, RObject>::new()));
 
-    let broadcaster = Arc::new(RwLock::new(Broadcaster{ subscribers: vec![] }));
+    let broadcaster = Arc::new(RwLock::new(Broadcaster{ subscribers: vec![], broadcasted: 0}));
 
     let master_stream = handshake(Arc::clone(&config)).await.expect(
         "Handshake failed"

@@ -1,84 +1,129 @@
-use std::sync::Arc;
+use std::{sync::Arc, usize};
 
 use anyhow::Error;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream};
+use futures::future::join_all;
+use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream, time::timeout, time::Duration};
 use futures::lock::Mutex;
 
 use crate::{protocol::RObject, BUFFER_SIZE};
 
 pub struct Broadcaster {
-    pub subscribers: Vec<Arc<Mutex<TcpStream>>>
+    pub subscribers: Vec<Arc<Mutex<TcpStream>>>,
+    pub broadcasted: usize,
 }
 
 impl Broadcaster {
 
     pub fn subscribe(&mut self, target: TcpStream) {
-        self.subscribers.push(
-            Arc::new(Mutex::new(target))
-        );
+        self.subscribers.push(Arc::new(Mutex::new(target)));
     }
 
     pub async fn broadcast(&mut self, message: &[u8]) -> Result<(), Error>{
-        println!("Scheduled to broadcast: {:?}", std::str::from_utf8(message).unwrap());
-        
-        let mut futures = Vec::new();
-
-        for subscriber in &self.subscribers {
-            let subscriber = subscriber.clone();
-            let future = async move {
+        let futures = self.subscribers.iter().map(|subscriber| {
+            let subscriber = Arc::clone(subscriber);
+            let message = message.to_vec();
+            tokio::spawn(async move {
                 let mut subscriber = subscriber.lock().await;
-                subscriber.write_all(message).await.expect("Failed to broadcast");
-            };
-            futures.push(future);
-        }
+                subscriber.flush().await.expect("Failed to flush subscriber");
+                subscriber.write_all(&message).await.expect(
+                    "Failed to write to subscriber"
+                );
+            })
+        }).collect::<Vec<_>>();
+
+        self.broadcasted += message.len();
+
+        join_all(futures).await;
 
         Ok(())
     }
 
-    pub async fn check_sync(&mut self, expect_bytes: usize) -> Result<usize, Error> {
-        let mut count = 0;
-
-        // for each subscriber, sends REPLCONF GETACK *
-        // then check if the response is equal to the expected bytes
-        for subscriber in &mut self.subscribers {
-            let mut subscriber = subscriber.lock().await;
-            
-            subscriber.write_all(
-                RObject::Array(
-                    vec![
-                        RObject::BulkString("REPLCONF".to_string()),
-                        RObject::BulkString("GETACK".to_string()),
-                        RObject::BulkString("*".to_string())
-                    ]
-                ).to_string().as_bytes()
-            ).await.expect("Failed to send REPLCONF GETACK");
-
-            let mut buffer = [0; BUFFER_SIZE];
-            subscriber.read(&mut buffer).await.expect("Failed to read REPLCONF GETACK response");
-            eprintln!(
-                "Received REPLCONF GETACK response: {:?} from {:?}",
-                 String::from_utf8_lossy(buffer.as_ref()),
-                subscriber.peer_addr().unwrap()
-            );
-
-            let response = match RObject::decode(std::str::from_utf8(&buffer).expect("Failed to decode REPLCONF GETACK response"), 0) {
-                Ok((RObject::Array(a), _)) => a,
-                _ => {
-                    eprintln!("Failed to parse REPLCONF GETACK response");
-                    continue;
-                }
-            };
-            if let RObject::BulkString(s) = &response[2] {
-                // if s equals to the expected bytes, increment count
-                count += if s.parse::<usize>().expect("Failed to parse REPLCONF GETACK response") == expect_bytes {
-                    1
-                } else {
-                    0
-                };
-            }
+    pub fn ask_ack(&mut self, wait_time: Duration) -> Vec<tokio::task::JoinHandle<Option<usize>>> {
+        if self.broadcasted == 0 {
+            // return a vec containing subscribers.len() 0
+            return self.subscribers.iter().map(|_| {
+                tokio::spawn(async { Some(0) })
+            }).collect::<Vec<_>>();
         }
-    
-        Ok(count)
+        // sends replconf GETACK * to all subscribers
+        let futures = self.subscribers.iter().map(|subscriber| {
+            let subscriber = Arc::clone(subscriber);
+            tokio::spawn(async move {
+                let mut subscriber = subscriber.lock().await;
+
+                // subscriber.write_all(
+                //     RObject::Array(
+                //         vec![
+                //             RObject::BulkString("replconf".to_string()),
+                //             RObject::BulkString("GETACK".to_string()),
+                //             RObject::BulkString("*".to_string()),
+                //         ]
+                //     ).to_string().as_bytes()
+                // ).await.expect("Failed to write to subscriber");
+
+                let timer = timeout(wait_time, async {
+                    subscriber.write_all(
+                        RObject::Array(
+                            vec![
+                                RObject::BulkString("replconf".to_string()),
+                                RObject::BulkString("GETACK".to_string()),
+                                RObject::BulkString("*".to_string()),
+                            ]
+                        ).to_string().as_bytes()
+                    ).await.expect("Failed to write to subscriber");
+                });
+
+                match timer.await {
+                    Ok(_) => {},
+                    Err(_) => {
+                        eprintln!("Failed to write to subscriber");
+                        return None;
+                    }
+                }
+
+                let mut buffer = [0; BUFFER_SIZE];
+                let s = subscriber.read(&mut buffer).await.unwrap_or(0);
+
+                if s == 0 {
+                    eprintln!("No content read from subscriber");
+                    return None;
+                }
+
+                let (parsed, consumed) = RObject::decode(
+                    &String::from_utf8_lossy(&buffer[..s]).to_string(),
+                    0
+                ).expect("Failed to parse response");
+
+                if consumed != s {
+                    eprintln!("Failed to consume all bytes");
+                    eprintln!(
+                        "Consumed: {}, Buffer: {}",
+                        consumed,
+                        s
+                    );
+                }
+
+                
+                if let RObject::Array(a) = parsed {
+                    match {
+                        a.get(2).expect("Failed to get second element")
+                    } {
+                        RObject::BulkString(s) => {
+                            return Some(s.parse::<usize>().expect("Failed to parse integer"))
+                        },
+                        _ => {
+                            eprintln!("Failed to parse integer");
+                            return None
+                        }
+                    }
+                } else {
+                    eprintln!("Failed to parse integer");
+                    return None
+                }
+            })
+        }).collect::<Vec<_>>();
+        
+        futures
     }
 }
 

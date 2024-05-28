@@ -18,8 +18,6 @@ pub async fn handle_set(args: &Vec<RObject>, stream: &mut TcpStream, storage: Ar
 
     let value = args[2].clone();
 
-    eprintln!("Setting {} to {:?}", key, value);
-
     storage.write().await.insert(key.clone(), value);
     
 

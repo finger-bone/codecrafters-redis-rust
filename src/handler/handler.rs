@@ -18,7 +18,7 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
 
     while start < str_req.len() {
         let (parsed, consumed) = protocol::RObject::decode(&str_req, start)?;
-        
+
         if let protocol::RObject::Array(a) = parsed {
             let command = match a.get(0)
                 .ok_or_else(|| anyhow::anyhow!("Empty array"))? {
@@ -34,8 +34,9 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                     handle_echo(&a, &mut stream).await?;
                 },
                 "SET" => {
-                    handle_set(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config)).await?;
-                    broadcaster.write().await.broadcast(request).await?;
+                    let future = handle_set(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config));
+                    broadcaster.write().await.broadcast(&request[start..consumed]).await?;
+                    let _ = future.await;
                 },
                 "GET" => {
                     handle_get(&a, &mut stream, Arc::clone(&storage)).await?;
