@@ -39,12 +39,6 @@ impl Broadcaster {
     }
 
     pub fn ask_ack(&mut self, wait_time: Duration) -> Vec<tokio::task::JoinHandle<Option<usize>>> {
-        if self.broadcasted == 0 {
-            // return a vec containing subscribers.len() 0
-            return self.subscribers.iter().map(|_| {
-                tokio::spawn(async { Some(0) })
-            }).collect::<Vec<_>>();
-        }
         // sends replconf GETACK * to all subscribers
         let futures = self.subscribers.iter().map(|subscriber| {
             let subscriber = Arc::clone(subscriber);

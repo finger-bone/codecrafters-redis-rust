@@ -39,7 +39,16 @@ pub async fn handle_wait(
         ).await.expect("Failed to write to stream handling wait.");
         return Ok(());
     }
-    
+
+    if broadcaster.read().await.broadcasted == 0 {
+        stream.write(
+            RObject::Integer(
+                broadcaster.read().await.subscribers.len() as i64
+            ).to_string().as_bytes()
+        ).await.expect("Failed to write to stream handling wait.");
+        return Ok(());
+    }
+
     let mut broadcaster = broadcaster.write().await;
 
     let mut futures: FuturesUnordered<_> = broadcaster.ask_ack(wait_time).into_iter().collect();
