@@ -4,18 +4,18 @@ use tokio::{io::AsyncWriteExt, sync::RwLock};
 use anyhow::Error;
 use tokio::net::TcpStream;
 
-use crate::{broadcast::Broadcaster, protocol::RObject, Config};
+use crate::{broadcast::Broadcaster, protocol::RObject, State};
 use hex;
 
 pub async fn handle_psync(
     _args: &Vec<RObject>,
     mut stream: TcpStream,
-    config: Arc<RwLock<Config>>,
+    state: Arc<RwLock<State>>,
     broadcaster: Arc<RwLock<Broadcaster>>
 ) -> Result<(), Error> {
     stream.write(
         RObject::SimpleString(
-            format!("FULLRESYNC {} 0", config.read().await.master_replid)
+            format!("FULLRESYNC {} 0", state.read().await.master_replid)
         ).to_string().as_bytes()
     ).await.expect(
         "Failed to respond with FULLRESYNC."

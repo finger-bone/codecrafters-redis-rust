@@ -3,14 +3,14 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::{bail, Error};
 use tokio::{net::TcpStream, sync::RwLock};
 
-use crate::{broadcast::Broadcaster, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set, handle_wait}, protocol::{self, RObject}, Config};
+use crate::{broadcast::Broadcaster, handler::{handle_echo, handle_get, handle_info, handle_ping, handle_psync, handle_replconf, handle_set, handle_wait}, protocol::{self, RObject}, State};
 
 pub enum HandleResult {
     Subscribed,
     Normal(TcpStream),
 }
 
-pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, config: Arc<RwLock<Config>>, broadcaster: Arc<RwLock<Broadcaster>>) -> Result<HandleResult, Error> {
+pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<HashMap<String, RObject>>>, state: Arc<RwLock<State>>, broadcaster: Arc<RwLock<Broadcaster>>) -> Result<HandleResult, Error> {
     
     let str_req = String::from_utf8_lossy(request).to_string();
 
@@ -28,13 +28,13 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                 };
             match command.as_str() {
                 "PING" => {
-                    handle_ping(&mut stream, Arc::clone(&config)).await?;
+                    handle_ping(&mut stream, Arc::clone(&state)).await?;
                 },
                 "ECHO" => {
                     handle_echo(&a, &mut stream).await?;
                 },
                 "SET" => {
-                    let future = handle_set(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config));
+                    let future = handle_set(&a, &mut stream, Arc::clone(&storage), Arc::clone(&state));
                     broadcaster.write().await.broadcast(&request[start..consumed]).await?;
                     let _ = future.await;
                 },
@@ -42,24 +42,24 @@ pub async fn handle(request: &[u8], mut stream: TcpStream, storage: Arc<RwLock<H
                     handle_get(&a, &mut stream, Arc::clone(&storage)).await?;
                 },
                 "INFO" => {
-                    handle_info(&a, Arc::clone(&config), &mut stream).await?;
+                    handle_info(&a, Arc::clone(&state), &mut stream).await?;
                 },
                 "REPLCONF" => {
-                    handle_replconf(&a, &mut stream, Arc::clone(&config)).await?;
+                    handle_replconf(&a, &mut stream, Arc::clone(&state)).await?;
                 },
                 "PSYNC" => {
-                    handle_psync(&a, stream, Arc::clone(&config), Arc::clone(&broadcaster)).await?;
+                    handle_psync(&a, stream, Arc::clone(&state), Arc::clone(&broadcaster)).await?;
                     return Ok(HandleResult::Subscribed);
                 },
                 "WAIT" => {
-                    handle_wait(&a, &mut stream, Arc::clone(&storage), Arc::clone(&config), Arc::clone(&broadcaster)).await?;
+                    handle_wait(&a, &mut stream, Arc::clone(&storage), Arc::clone(&state), Arc::clone(&broadcaster)).await?;
                 }
                 _ => bail!("Unknown command: {}", command),
             }
         } else {
             bail!("Expected array as request");
         }
-        config.write().await.consumed += consumed - start;    
+        state.write().await.consumed += consumed - start;    
         start = consumed;
     }
 

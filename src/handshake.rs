@@ -6,12 +6,12 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use anyhow::Error;
 use tokio::net::TcpStream;
 use crate::BUFFER_SIZE;
-use crate::{protocol::RObject, Config};
+use crate::{protocol::RObject, State};
 
 pub async fn handshake(
-    config: Arc<RwLock<Config>>
+    state: Arc<RwLock<State>>
 ) -> Result<Option<TcpStream>, Error> {
-    let address = config.read().await.replica_of.clone();
+    let address = state.read().await.replica_of.clone();
     if address.len() == 0 {
         return Ok(None);
     }
@@ -43,12 +43,12 @@ pub async fn handshake(
                 RObject::BulkString("listening-port".to_string()),
                 RObject::BulkString(
                     format!(
-                        "{}", config.read().await.working_port
+                        "{}", state.read().await.working_port
                     )
                 )
             ]
         ).to_string().as_bytes()
-    ).await.expect("Failed to config listening port");
+    ).await.expect("Failed to state listening port");
 
     let mut replconf_listening_port_response = [0; BUFFER_SIZE];
     stream.read(&mut replconf_listening_port_response).await.expect("Failed to receive response ");
@@ -61,7 +61,7 @@ pub async fn handshake(
                 RObject::BulkString("psync2".to_string())
             ]
         ).to_string().as_bytes()
-    ).await.expect("Failed to config listening port");
+    ).await.expect("Failed to state listening port");
 
     let mut replconf_capa_response = [0; BUFFER_SIZE];
     stream.read(&mut replconf_capa_response).await.expect("Failed to receive capa responose when handshaking");

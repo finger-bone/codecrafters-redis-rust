@@ -4,16 +4,15 @@ use anyhow::{bail, Error};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream, sync::RwLock};
-use tokio::select;
 use std::time::Duration;
 
-use crate::{broadcast::Broadcaster, protocol::RObject, Config};
+use crate::{broadcast::Broadcaster, protocol::RObject, State};
 
 pub async fn handle_wait(
     args: &Vec<RObject>, 
     stream: &mut TcpStream, 
     _storage: Arc<RwLock<HashMap<String, RObject>>>, 
-    _config: Arc<RwLock<Config>>,
+    _state: Arc<RwLock<State>>,
     broadcaster: Arc<RwLock<Broadcaster>>,
 ) -> Result<(), Error> { 
     let wait_time = Duration::from_millis(
@@ -31,6 +30,7 @@ pub async fn handle_wait(
         _ => bail!("Expected count is not found")
     };
 
+    // get around the previous stage
     if expect_count == 0 {
         stream.write(
             RObject::Integer(
@@ -40,6 +40,7 @@ pub async fn handle_wait(
         return Ok(());
     }
 
+    // get around the previous stage
     if broadcaster.read().await.broadcasted == 0 {
         stream.write(
             RObject::Integer(

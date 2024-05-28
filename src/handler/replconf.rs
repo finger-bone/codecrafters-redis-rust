@@ -4,16 +4,16 @@ use anyhow::{bail, Error};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use tokio::sync::RwLock;
 
-use crate::{protocol::RObject, Config};
+use crate::{protocol::RObject, State};
 
 pub async fn handle_replconf(
     args: &Vec<RObject>,
     stream: &mut TcpStream,
-    config: Arc<RwLock<Config>>
+    state: Arc<RwLock<State>>
 ) -> Result<(), Error> {
     let target = match args.get(1) {
         Some(RObject::BulkString(s)) => s,
-        _ => bail!("No configurable target found")
+        _ => bail!("No stateurable target found")
     };
 
     match target.as_str() {
@@ -27,7 +27,7 @@ pub async fn handle_replconf(
                 RObject::Array(vec![
                     RObject::BulkString("REPLCONF".to_string()),
                     RObject::BulkString("ACK".to_string()),
-                    RObject::BulkString(config.read().await.consumed.to_string())
+                    RObject::BulkString(state.read().await.consumed.to_string())
                 ]).to_string().as_bytes()
             ).await.expect("Failed to respond to replconf GETACK");
         },

@@ -3,11 +3,11 @@ use std::sync::Arc;
 use anyhow::{bail, Error};
 use tokio::{io::AsyncWriteExt, net::TcpStream, sync::RwLock};
 
-use crate::{protocol::RObject, Config};
+use crate::{protocol::RObject, State};
 
 pub async fn handle_info(
     args: &Vec<RObject>,
-    config: Arc<RwLock<Config>>,
+    state: Arc<RwLock<State>>,
     stream: &mut TcpStream
 ) -> Result<(), Error> {
     let specification = match args.get(1).expect("No specification") {
@@ -25,9 +25,9 @@ pub async fn handle_info(
                             "master_replid:{}\n",
                             "master_repl_offset:{}\n"
                         ),
-                        config.read().await.role,
-                        config.read().await.master_replid,
-                        config.read().await.master_repl_offset,
+                        state.read().await.role,
+                        state.read().await.master_replid,
+                        state.read().await.master_repl_offset,
                     )
                 ).to_string().as_bytes()
             ).await.expect("Failed to write to stream handling info replication.")

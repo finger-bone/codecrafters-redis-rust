@@ -13,13 +13,15 @@ impl std::fmt::Display for ServerRole {
     }
 }
 
-pub struct Config {
+pub struct State {
     pub role: ServerRole,
     pub master_replid: String,
     pub master_repl_offset: usize,
     pub replica_of: String,
     pub working_port: u64,
     pub consumed: usize,
+    pub dir: String,
+    pub dbfilename: String,
 }
 
 pub const BUFFER_SIZE: usize = 128 * 2;

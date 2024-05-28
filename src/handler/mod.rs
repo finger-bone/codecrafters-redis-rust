@@ -7,6 +7,7 @@ mod info;
 mod replconf;
 mod psync;
 mod wait;
+mod config;
 
 pub use handler::*;
 pub(crate) use ping::handle_ping;
