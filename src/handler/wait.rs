@@ -1,6 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{bail, Error};
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream, sync::RwLock};
 use tokio::select;
 use std::time::Duration;
@@ -29,10 +31,6 @@ pub async fn handle_wait(
         _ => bail!("Expected count is not found")
     };
 
-    // I don't understand the design of the stage
-    // like, if you implemented the things in the later stage
-    // the previous one is doomed to fail
-    // so just an ugly hack to make it work
     if expect_count == 0 {
         stream.write(
             RObject::Integer(
@@ -41,33 +39,40 @@ pub async fn handle_wait(
         ).await.expect("Failed to write to stream handling wait.");
         return Ok(());
     }
-
-    let mut timer = Box::pin(tokio::time::sleep(wait_time));
-
+    
     let mut broadcaster = broadcaster.write().await;
 
-    let futures = broadcaster.ask_ack(wait_time);
+    let mut futures: FuturesUnordered<_> = broadcaster.ask_ack(wait_time).into_iter().collect();
+
+    let mut cnt = 0;
+    let mut timer = Box::pin(tokio::time::sleep(wait_time));
 
     loop {
-        select! {
+        tokio::select! {
             _ = &mut timer => {
                 // The timer has timed out, break the loop
                 break;
             }
+            Some(result) = futures.next(), if cnt < expect_count => {
+                // A future has completed
+                if let Ok(Some(_)) = result {
+                    cnt += 1;
+                }
+            }
+            else => {
+                // All futures have completed or we have reached the expected count
+                break;
+            }
         }
     }
-    let mut cnt = 0;
     for future in futures {
-        if future.is_finished() {
-            cnt += 1;
-        }
         future.abort();
     }
 
 
     stream.write(
         RObject::Integer(
-            cnt
+            cnt as i64
         ).to_string().as_bytes()
     ).await.expect("Failed to write to stream handling wait.");
 
